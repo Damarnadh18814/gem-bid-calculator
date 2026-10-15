@@ -123,6 +123,12 @@
   svg.chart .hover-line { stroke: var(--muted); stroke-width: 1; }
   .readout { font-size: 13px; color: var(--muted); min-height: 1.5em; font-variant-numeric: tabular-nums; }
 
+  .cta { margin-top: 28px; border-color: var(--accent); display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .cta > div { flex: 1 1 320px; }
+  .cta .hint { margin-bottom: 8px; }
+  .cta .price { margin: 0; font-size: 15px; }
+  .cta .btn { margin-top: 0; text-decoration: none; white-space: nowrap; }
+
   .hidden { display: none; }
   footer { color: var(--muted); font-size: 13px; margin-top: 32px; }
   footer p { margin: 6px 0; }
@@ -194,6 +200,15 @@
 
     <div class="card" id="t-out" aria-live="polite"></div>
   </section>
+
+  <div class="card cta">
+    <div>
+      <h2>Want a bid memo for your exact tender?</h2>
+      <p class="hint">A written bid-strategy memo for one tender: an estimate of the competition, a recommended bid range, the trade-off between win chance and margin, and a check of MSE and Make in India preferences. Delivered in 48 hours.</p>
+      <p class="price"><b>First memo free.</b> After that, from ₹1,499 per tender.</p>
+    </div>
+    <a class="btn" id="memo-btn" href="#">Request a bid memo</a>
+  </div>
 
   <footer>
     <p><b>How to read this:</b> "Expected profit" is the average you'd earn per tender if you bid this way many times: margin × win chance. On any single tender you either win the whole margin or earn nothing.</p>
@@ -417,6 +432,23 @@
 
     wireChart(out, pts, (p) => `Bid ${inr.format(p.x)} → win chance ${pct(p.p, 0)}, expected profit ${inr.format(p.ev)}`);
   }
+
+  // ---------- paid memo request ----------
+  const CONTACT_EMAIL = "BRAND_EMAIL";
+  const memoBody = [
+    "Hi, I'd like a bid-strategy memo.",
+    "",
+    "GeM bid number / tender link:",
+    "Item and quantity:",
+    "Estimated value (₹):",
+    "My approximate full cost (₹):",
+    "Bid deadline:",
+    "Am I an MSE? (yes/no):"
+  ].join("\n");
+  if (!CONTACT_EMAIL.includes("@")) document.querySelector(".cta").classList.add("hidden");
+  $("memo-btn").href = "mailto:" + CONTACT_EMAIL +
+    "?subject=" + encodeURIComponent("Bid memo request") +
+    "&body=" + encodeURIComponent(memoBody);
 
   $("d-run").addEventListener("click", runData);
   $("t-run").addEventListener("click", runTheory);

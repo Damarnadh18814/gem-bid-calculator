@@ -2,7 +2,7 @@
 
 A free auction-theory calculator for GeM, CPPP, state e-procurement and any other lowest-price (L1) tender. By The Game Theory Desk.
 
-**Use it:** BRAND-LINK
+**Use it:** https://damarnadh18814.github.io/gem-bid-calculator/
 
 It finds the bid that maximises **expected profit = margin × chance of winning**, in two ways:
 
