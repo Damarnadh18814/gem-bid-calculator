@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeM Bid Calculator</title>
+<meta name="description" content="Free auction-theory calculator for GeM and other lowest-price (L1) tenders. Find the bid that maximises expected profit.">
+<style>
+  :root {
+    --bg: #f6f5f1;
+    --surface: #ffffff;
+    --ink: #1c1b19;
+    --muted: #615e57;
+    --line: #e2dfd7;
+    --accent: #0e6b59;
+    --accent-ink: #ffffff;
+    --accent-soft: #e2f0ec;
+    --series2: #b0532a;
+    --warn: #8a5300;
+    --warn-soft: #fbf1df;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #131311;
+      --surface: #1c1b19;
+      --ink: #ecebe6;
+      --muted: #a5a299;
+      --line: #33312d;
+      --accent: #4cc2a4;
+      --accent-ink: #0b1f1a;
+      --accent-soft: #17362f;
+      --series2: #e58a60;
+      --warn: #f1b45b;
+      --warn-soft: #382a13;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #131311;
+    --surface: #1c1b19;
+    --ink: #ecebe6;
+    --muted: #a5a299;
+    --line: #33312d;
+    --accent: #4cc2a4;
+    --accent-ink: #0b1f1a;
+    --accent-soft: #17362f;
+    --series2: #e58a60;
+    --warn: #f1b45b;
+    --warn-soft: #382a13;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+  header p { color: var(--muted); margin: 6px 0 0; max-width: 60ch; }
+  .brand { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  h1 { font-size: clamp(26px, 5vw, 36px); line-height: 1.15; margin: 6px 0 0; }
+  h2 { font-size: 18px; margin: 0 0 4px; }
+
+  .tabs { display: flex; gap: 6px; margin: 28px 0 0; border-bottom: 1px solid var(--line); }
+  .tab {
+    appearance: none; border: 0; background: none; color: var(--muted);
+    font: inherit; font-weight: 600; padding: 10px 14px; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px; margin-top: 20px;
+  }
+  .hint { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+  label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  label small { display: block; font-weight: 400; color: var(--muted); }
+  input, textarea {
+    width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+  }
+  textarea { min-height: 86px; resize: vertical; }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .btn {
+    margin-top: 16px; appearance: none; border: 0; border-radius: 8px;
+    background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 600;
+    padding: 11px 18px; cursor: pointer;
+  }
+  .link-btn { appearance: none; border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer; padding: 0; text-decoration: underline; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+  .stat { background: var(--bg); border-radius: 10px; padding: 14px; }
+  .stat .k { font-size: 13px; color: var(--muted); }
+  .stat .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat.primary { background: var(--accent-soft); }
+  .stat.primary .v { color: var(--accent); }
+
+  .note { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-top: 14px; }
+  .note:empty { display: none; }
+  .formula { font-size: 14px; color: var(--muted); margin-top: 12px; }
+  .formula b { color: var(--ink); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 14px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; }
+  tr.best td { font-weight: 700; color: var(--accent); }
+  .table-scroll { overflow-x: auto; }
+
+  .chart-title { font-size: 13px; color: var(--muted); margin: 18px 0 4px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .chart-title i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+  svg.chart { width: 100%; height: auto; display: block; }
+  svg.chart text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+  svg.chart .grid-line { stroke: var(--line); }
+  svg.chart .ev { stroke: var(--accent); fill: none; stroke-width: 2.5; }
+  svg.chart .pw { stroke: var(--series2); fill: none; stroke-width: 2; stroke-dasharray: 5 4; }
+  svg.chart .mark { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 2 3; }
+  svg.chart .hover-line { stroke: var(--muted); stroke-width: 1; }
+  .readout { font-size: 13px; color: var(--muted); min-height: 1.5em; font-variant-numeric: tabular-nums; }
+
+  .hidden { display: none; }
+  footer { color: var(--muted); font-size: 13px; margin-top: 32px; }
+  footer p { margin: 6px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">The Game Theory Desk</div>
+    <h1>GeM Bid Calculator</h1>
+    <p>Lowest price wins, so what should you bid? This tool uses auction theory to find the bid that maximises <b>margin × chance of winning</b>. It works for GeM, CPPP, state e-procurement and any other L1 tender.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-data" aria-selected="true" aria-controls="panel-data">From past results</button>
+    <button class="tab" role="tab" id="tab-theory" aria-selected="false" aria-controls="panel-theory">Quick estimate</button>
+  </div>
+
+  <!-- Mode: past results -->
+  <section id="panel-data" role="tabpanel" aria-labelledby="tab-data">
+    <div class="card">
+      <h2>Use winning prices from similar past tenders</h2>
+      <p class="hint">Find 10–20 similar past tenders in GeM's bid results. For each one, write the winning (L1) price as a % of that tender's estimated value. Your chance of winning at any price is estimated from how often past L1 prices were higher.</p>
+      <div class="grid">
+        <div>
+          <label for="d-est">Estimated value of this tender (₹)<small>Reference or estimated price</small></label>
+          <input id="d-est" inputmode="decimal" value="1000000">
+        </div>
+        <div>
+          <label for="d-cost">Your full cost to deliver (₹)<small>Include freight, fees, payment-delay interest</small></label>
+          <input id="d-cost" inputmode="decimal" value="840000">
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <label for="d-list">Past L1 prices (% of estimate)<small>Separate with commas, spaces or new lines</small></label>
+        <textarea id="d-list">86, 91, 88.5, 94, 89, 92.5, 87, 90, 95, 88, 93, 91.5</textarea>
+      </div>
+      <button class="btn" id="d-run">Calculate best bid</button>
+    </div>
+
+    <div class="card" id="d-out" aria-live="polite"></div>
+  </section>
+
+  <!-- Mode: theory -->
+  <section id="panel-theory" role="tabpanel" aria-labelledby="tab-theory" class="hidden">
+    <div class="card">
+      <h2>No data? Estimate the rivals' cost range</h2>
+      <p class="hint">Assumes rivals' costs are spread evenly across the range and that everyone bids rationally (the textbook equilibrium). Good for a first estimate.</p>
+      <div class="grid">
+        <div>
+          <label for="t-cost">Your full cost (₹)</label>
+          <input id="t-cost" inputmode="decimal" value="850000">
+        </div>
+        <div>
+          <label for="t-low">Cheapest likely rival cost (₹)</label>
+          <input id="t-low" inputmode="decimal" value="800000">
+        </div>
+        <div>
+          <label for="t-high">Costliest serious rival cost (₹)</label>
+          <input id="t-high" inputmode="decimal" value="1100000">
+        </div>
+        <div>
+          <label for="t-n">Number of bidders (including you)</label>
+          <input id="t-n" inputmode="numeric" value="4">
+        </div>
+      </div>
+      <button class="btn" id="t-run">Calculate best bid</button>
+    </div>
+
+    <div class="card" id="t-out" aria-live="polite"></div>
+  </section>
+
+  <footer>
+    <p><b>How to read this:</b> "Expected profit" is the average you'd earn per tender if you bid this way many times: margin × win chance. On any single tender you either win the whole margin or earn nothing.</p>
+    <p><b>Check the tender's terms:</b> MSE purchase preference (commonly L1 + 15% may match L1 for part of the order) and Make in India preferences can change the best strategy.</p>
+    <p>Everything is calculated in your browser. Nothing you type is sent anywhere. This is analysis, not a guarantee of winning. Never coordinate prices with rivals: bid-rigging is illegal under the Competition Act, 2002.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- formatting ----------
+  const inr = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+  const pct = (x, d = 1) => (x * 100).toFixed(d) + "%";
+  const num = (id) => parseFloat(String(document.getElementById(id).value).replace(/[,₹\s]/g, ""));
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- tabs ----------
+  const tabs = [["tab-data", "panel-data"], ["tab-theory", "panel-theory"]];
+  tabs.forEach(([t, p]) => {
+    $(t).addEventListener("click", () => {
+      tabs.forEach(([t2, p2]) => {
+        $(t2).setAttribute("aria-selected", String(t2 === t));
+        $(p2).classList.toggle("hidden", p2 !== p);
+      });
+    });
+  });
+
+  // ---------- maths ----------
+  // Standard normal CDF (Abramowitz & Stegun 7.1.26 erf approximation).
+  function normCdf(z) {
+    const t = 1 / (1 + 0.3275911 * Math.abs(z) / Math.SQRT2);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z / 2);
+    return z >= 0 ? 0.5 * (1 + y) : 0.5 * (1 - y);
+  }
+
+  // Equilibrium of a first-price reverse auction, costs ~ U[L, H], n bidders.
+  // Rivals bid b(c) = c + (H - c)/n, so a bid b beats one rival when that rival's cost > (n b - H)/(n - 1).
+  function theoryWinProb(b, L, H, n) {
+    if (b >= H) return 0;
+    const x = (n * b - H) / (n - 1);
+    const q = Math.min(1, Math.max(0, (H - x) / (H - L)));
+    return Math.pow(q, n - 1);
+  }
+
+  // Win probability from past L1 prices: kernel-smoothed share of past L1 above the bid.
+  function makeDataWinProb(xs) {
+    const k = xs.length;
+    const mean = xs.reduce((a, v) => a + v, 0) / k;
+    const sd = Math.sqrt(xs.reduce((a, v) => a + (v - mean) ** 2, 0) / Math.max(1, k - 1));
+    const h = Math.max(0.25, 1.06 * (sd || 1) * Math.pow(k, -0.2)); // Silverman bandwidth, in % points
+    return { h, sd, mean, fn: (b) => xs.reduce((a, x) => a + (1 - normCdf((b - x) / h)), 0) / k };
+  }
+
+  function optimise(lo, hi, steps, evFn) {
+    const pts = [];
+    let best = null;
+    for (let i = 0; i <= steps; i++) {
+      const b = lo + (hi - lo) * i / steps;
+      const r = evFn(b);
+      pts.push(r);
+      if (!best || r.ev > best.ev) best = r;
+    }
+    return { pts, best };
+  }
+
+  // ---------- chart ----------
+  function chart(pts, best, xFmt, evFmt) {
+    const W = 640, Hh = 240, pl = 70, pr = 44, pt = 14, pb = 34;
+    const iw = W - pl - pr, ih = Hh - pt - pb;
+    const x0 = pts[0].x, x1 = pts[pts.length - 1].x;
+    const evMax = Math.max(...pts.map(p => p.ev)) || 1;
+    const sx = (x) => pl + (x - x0) / (x1 - x0 || 1) * iw;
+    const sy = (v) => pt + ih - (v / evMax) * ih;
+    const sp = (p) => pt + ih - p * ih;
+
+    let g = "";
+    for (let i = 0; i <= 4; i++) {
+      const y = pt + ih * i / 4;
+      g += `<line class="grid-line" x1="${pl}" x2="${pl + iw}" y1="${y}" y2="${y}"/>`;
+      g += `<text x="${pl - 8}" y="${y + 4}" text-anchor="end">${evFmt(evMax * (1 - i / 4))}</text>`;
+      g += `<text x="${pl + iw + 6}" y="${y + 4}">${Math.round(100 * (1 - i / 4))}%</text>`;
+    }
+    for (let i = 0; i <= 4; i++) {
+      const xv = x0 + (x1 - x0) * i / 4;
+      g += `<text x="${sx(xv)}" y="${Hh - 10}" text-anchor="middle">${xFmt(xv)}</text>`;
+    }
+    const ev = pts.map((p, i) => (i ? "L" : "M") + sx(p.x).toFixed(1) + " " + sy(p.ev).toFixed(1)).join(" ");
+    const pw = pts.map((p, i) => (i ? "L" : "M") + sx(p.x).toFixed(1) + " " + sp(p.p).toFixed(1)).join(" ");
+    const bx = sx(best.x);
+
+    return `
+      <div class="chart-title"><span><i style="background:var(--accent)"></i>Expected profit (left axis)</span><span><i style="background:var(--series2)"></i>Win chance (right axis)</span></div>
+      <svg class="chart" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Expected profit and win chance for each possible bid">
+        ${g}
+        <path class="pw" d="${pw}"/>
+        <path class="ev" d="${ev}"/>
+        <line class="mark" x1="${bx}" x2="${bx}" y1="${pt}" y2="${pt + ih}"/>
+        <circle cx="${bx}" cy="${sy(best.ev)}" r="4.5" fill="var(--accent)"/>
+        <line class="hover-line" x1="0" x2="0" y1="${pt}" y2="${pt + ih}" visibility="hidden"/>
+        <rect x="${pl}" y="${pt}" width="${iw}" height="${ih}" fill="transparent" class="hit"/>
+      </svg>
+      <div class="readout">Hover or tap the chart to compare bids.</div>`;
+  }
+
+  function wireChart(container, pts, describe) {
+    const svg = container.querySelector("svg.chart");
+    const hit = svg.querySelector(".hit");
+    const line = svg.querySelector(".hover-line");
+    const out = container.querySelector(".readout");
+    const x0 = +hit.getAttribute("x"), iw = +hit.getAttribute("width");
+    function move(ev) {
+      const pt = svg.createSVGPoint();
+      const src = ev.touches ? ev.touches[0] : ev;
+      pt.x = src.clientX; pt.y = src.clientY;
+      const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+      const f = Math.min(1, Math.max(0, (loc.x - x0) / iw));
+      const p = pts[Math.round(f * (pts.length - 1))];
+      line.setAttribute("x1", loc.x); line.setAttribute("x2", loc.x);
+      line.setAttribute("visibility", "visible");
+      out.textContent = describe(p);
+    }
+    hit.addEventListener("mousemove", move);
+    hit.addEventListener("touchmove", (e) => { move(e); e.preventDefault(); }, { passive: false });
+    hit.addEventListener("click", move);
+  }
+
+  const shortInr = (v) => v >= 1e7 ? "₹" + (v / 1e7).toFixed(2) + " Cr" : v >= 1e5 ? "₹" + (v / 1e5).toFixed(2) + " L" : inr.format(v);
+
+  function stat(k, v, primary) {
+    return `<div class="stat${primary ? " primary" : ""}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  }
+  function err(el, msg) { el.innerHTML = `<div class="note">${msg}</div>`; }
+
+  // ---------- mode: past results ----------
+  function runData() {
+    const out = $("d-out");
+    const E = num("d-est"), c = num("d-cost");
+    const xs = String($("d-list").value).split(/[\s,;]+/).map(t => parseFloat(t.replace("%", ""))).filter(v => Number.isFinite(v) && v > 0 && v < 500);
+    if (!(E > 0) || !(c > 0)) return err(out, "Enter a positive estimated value and cost.");
+    if (xs.length < 3) return err(out, "Add at least 3 past L1 prices (as % of estimate). 10 or more is better.");
+
+    const cp = c / E * 100;
+    const model = makeDataWinProb(xs);
+    const hiX = Math.max(...xs) + 3 * model.h;
+    if (cp >= hiX) return err(out, `Your cost is ${cp.toFixed(1)}% of the estimate, which is above almost every past winning price. You're unlikely to win profitably. Look for cost savings or skip this tender.`);
+
+    const evAt = (b) => { const p = model.fn(b); return { x: b, p, ev: Math.max(0, (b - cp) / 100 * E * p) }; };
+    const { pts, best } = optimise(cp, hiX, 600, evAt);
+
+    // alternative bids: highest bid keeping a given win chance
+    const atLeast = (target) => { let r = null; for (const p of pts) if (p.p >= target) r = p; return r; };
+    const rows = [
+      ["Safer (≈80% win)", atLeast(0.8)],
+      ["Best expected profit", best],
+      ["Stretch (≈30% win)", atLeast(0.3)]
+    ].filter(([, r]) => r && r.x > cp + 1e-9)
+     .sort((a, b) => a[1].x - b[1].x);
+
+    const notes = [];
+    if (xs.length < 8) notes.push(`Only ${xs.length} past prices, so treat this as a rough guide. 10–20 comparable tenders give a much better estimate.`);
+    if (best.p < 0.15) notes.push("Even the best bid has a low win chance: your cost is high relative to past winners.");
+    if (cp < Math.min(...xs) - 2 * model.h) notes.push("Your cost is well below every past winning price. Double-check you haven't left out costs (the winner's curse).");
+
+    out.innerHTML = `
+      <h2>Recommended bid</h2>
+      <div class="stats">
+        ${stat("Bid", inr.format(best.x / 100 * E), true)}
+        ${stat("As % of estimate", best.x.toFixed(1) + "%")}
+        ${stat("Win chance", pct(best.p, 0))}
+        ${stat("Expected profit", inr.format(best.ev))}
+      </div>
+      <div class="note">${notes.join(" ")}</div>
+      ${chart(pts, best, (x) => x.toFixed(0) + "%", shortInr)}
+      <div class="table-scroll"><table>
+        <thead><tr><th>Option</th><th>Bid</th><th>% of est.</th><th>Margin</th><th>Win chance</th><th>Expected profit</th></tr></thead>
+        <tbody>${rows.map(([name, r]) => `
+          <tr class="${r === best ? "best" : ""}"><td>${name}</td><td>${inr.format(r.x / 100 * E)}</td><td>${r.x.toFixed(1)}%</td>
+          <td>${pct((r.x - cp) / cp)}</td><td>${pct(r.p, 0)}</td><td>${inr.format(r.ev)}</td></tr>`).join("")}
+        </tbody></table></div>
+      <p class="formula">Based on ${xs.length} past tenders · typical winning price ${model.mean.toFixed(1)}% of estimate (spread ±${model.sd.toFixed(1)} points) · your cost is ${cp.toFixed(1)}% of estimate.</p>`;
+
+    wireChart(out, pts, (p) => `Bid ${inr.format(p.x / 100 * E)} (${p.x.toFixed(1)}%) → win chance ${pct(p.p, 0)}, expected profit ${inr.format(p.ev)}`);
+  }
+
+  // ---------- mode: theory ----------
+  function runTheory() {
+    const out = $("t-out");
+    const c = num("t-cost"), L = num("t-low"), H = num("t-high"), n = Math.round(num("t-n"));
+    if (![c, L, H, n].every(Number.isFinite) || c <= 0 || L <= 0) return err(out, "Fill in all four boxes with positive numbers.");
+    if (!(H > L)) return err(out, "The costliest rival cost must be higher than the cheapest.");
+    if (n < 2 || n > 200) return err(out, "Number of bidders must be between 2 and 200.");
+    if (c >= H) return err(out, "Your cost is at or above the costliest serious rival. In equilibrium you'd almost never win at a profit. Look for cost savings or skip this tender.");
+
+    const evAt = (b) => { const p = theoryWinProb(b, L, H, n); return { x: b, p, ev: Math.max(0, (b - c) * p) }; };
+    const { pts, best } = optimise(c, H, 600, evAt);
+    const formula = c + (H - c) / n;
+    const inside = c >= L && c <= H;
+
+    const compare = [c + (best.x - c) * 0.3, best.x, best.x + (H - best.x) * 0.4]
+      .map((b, i) => [["Lower", "Best", "Higher"][i], evAt(b)]);
+
+    out.innerHTML = `
+      <h2>Recommended bid</h2>
+      <div class="stats">
+        ${stat("Bid", inr.format(best.x), true)}
+        ${stat("Markup on cost", pct((best.x - c) / c))}
+        ${stat("Win chance", pct(best.p, 0))}
+        ${stat("Expected profit", inr.format(best.ev))}
+      </div>
+      <p class="formula">${inside
+        ? `L1 equation: <b>Bid = Cost + (H − Cost) ÷ n</b> = ${inr.format(c)} + (${inr.format(H)} − ${inr.format(c)}) ÷ ${n} = <b>${inr.format(formula)}</b>`
+        : `Your cost is below the cheapest rival's, so the best bid is just under what the cheapest rival would bid. You win almost every time.`}</p>
+      ${chart(pts, best, shortInr, shortInr)}
+      <div class="table-scroll"><table>
+        <thead><tr><th>Option</th><th>Bid</th><th>Markup</th><th>Win chance</th><th>Expected profit</th></tr></thead>
+        <tbody>${compare.map(([name, r]) => `
+          <tr class="${name === "Best" ? "best" : ""}"><td>${name}</td><td>${inr.format(r.x)}</td><td>${pct((r.x - c) / c)}</td><td>${pct(r.p, 0)}</td><td>${inr.format(r.ev)}</td></tr>`).join("")}
+        </tbody></table></div>`;
+
+    wireChart(out, pts, (p) => `Bid ${inr.format(p.x)} → win chance ${pct(p.p, 0)}, expected profit ${inr.format(p.ev)}`);
+  }
+
+  $("d-run").addEventListener("click", runData);
+  $("t-run").addEventListener("click", runTheory);
+  runData();
+  runTheory();
+})();
+</script>
+</body>
+</html>
